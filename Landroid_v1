@@ -1,7 +1,9 @@
 
 blueprint:
   name: Koszenie trawnika - elastyczne okno z powiadomieniem
-  description: Uruchamia kosiarkę w określonym oknie czasowym, jeśli nie pada i prognozowane opady są poniżej progu. Wysyła powiadomienie na urządzenie mobilne.
+  description: >
+    Uruchamia kosiarkę w określonym oknie czasowym, jeśli spełnione są warunki pogodowe.
+    Wysyła powiadomienie, jeśli opcja jest włączona.
   domain: automation
   input:
     mower_entity:
@@ -28,6 +30,7 @@ blueprint:
           max: 20
           step: 0.1
           unit_of_measurement: mm
+          mode: slider
     mowing_start:
       name: Początek okna koszenia
       selector:
@@ -66,7 +69,7 @@ condition:
     state: "off"
   - condition: numeric_state
     entity_id: !input rain_forecast_sensor
-    below: !input rain_threshold
+    above: !input rain_threshold
   - condition: state
     entity_id: !input mower_entity
     state: "docked"
@@ -75,10 +78,11 @@ action:
   - service: lawn_mower.start_mowing
     target:
       entity_id: !input mower_entity
+
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ (not is_state('input_boolean.notify_enabled', 'off')) }}"
+            value_template: "{{ (true == (inputs.notify_enabled | default(true))) }}"
         sequence:
           - domain: mobile_app
             type: notify

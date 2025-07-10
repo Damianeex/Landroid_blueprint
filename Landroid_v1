@@ -1,0 +1,74 @@
+blueprint:
+  name: Koszenie trawnika - elastyczne okno z warunkami pogodowymi
+  description: >
+    Automatyzacja uruchamiająca kosiarkę w elastycznym oknie czasowym,
+    jeśli nie pada i prognozowane opady są poniżej ustalonego progu.
+    Wysyła powiadomienie push po uruchomieniu.
+  domain: automation
+  input:
+    mower_entity:
+      name: Kosiarka
+      selector:
+        entity:
+          domain: lawn_mower
+    rain_sensor:
+      name: Czujnik deszczu (binary_sensor)
+      selector:
+        entity:
+          domain: binary_sensor
+    rain_forecast_sensor:
+      name: Sensor prognozowanych opadów (mm)
+      selector:
+        entity:
+          domain: sensor
+    rain_threshold:
+      name: Próg opadów (mm)
+      default: 4
+      selector:
+        number:
+          min: 0
+          max: 20
+          step: 0.1
+          unit_of_measurement: mm
+    mow_window_start:
+      name: Początek okna koszenia
+      selector:
+        entity:
+          domain: input_datetime
+    mow_window_end:
+      name: Koniec okna koszenia
+      selector:
+        entity:
+          domain: input_datetime
+    notify_device:
+      name: Urządzenie do powiadomień
+      selector:
+        device:
+          integration: mobile_app
+
+trigger:
+  - platform: time_pattern
+    minutes: "/5"
+
+condition:
+  - condition: time
+    after: !input mow_window_start
+    before: !input mow_window_end
+  - condition: state
+    entity_id: !input rain_sensor
+    state: "off"
+  - condition: numeric_state
+    entity_id: !input rain_forecast_sensor
+    below: !input rain_threshold
+  - condition: state
+    entity_id: !input mower_entity
+    state: "docked"
+
+action:
+  - service: lawn_mower.start_mowing
+    target:
+      entity_id: !input mower_entity
+  - service: notify.mobile_app_{{ device_attr(!input notify_device, 'name') | slugify }}
+    data:
+      message: "Heniek rozpoczął koszenie w elastycznym oknie czasowym."
+mode: single

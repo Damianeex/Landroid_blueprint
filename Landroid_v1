@@ -1,55 +1,45 @@
 blueprint:
   name: Koszenie trawnika - elastyczne okno z powiadomieniem
   description: >
-    Uruchamia kosiarkę w określonym oknie czasowym, jeśli nie pada i prognozowane opady są poniżej progu.
+    Uruchamia kosiarkę w elastycznym oknie czasowym, jeśli nie pada i prognozowane opady są poniżej ustalonego progu.
     Wysyła powiadomienie na wybrane urządzenie mobilne (mobile_app).
   domain: automation
   input:
     mower_entity:
-      name: Kosiarka
-      description: Encja kosiarki (np. lawn_mower.heniek)
+      name: Encja kosiarki
       selector:
         entity:
           domain: lawn_mower
-
     rain_sensor:
-      name: Czujnik deszczu
-      description: Binary sensor wykrywający deszcz (np. binary_sensor.heniek_rainsensor_triggered)
+      name: Czujnik deszczu (binary_sensor)
       selector:
         entity:
           domain: binary_sensor
-
     rain_forecast_sensor:
-      name: Sensor prognozowanych opadów
-      description: Sensor z prognozowaną sumą opadów (np. sensor.opady_dzisiaj)
+      name: Sensor prognozowanych opadów (mm)
       selector:
         entity:
           domain: sensor
-
     rain_threshold:
       name: Próg opadów (mm)
-      description: Maksymalna prognozowana suma opadów, przy której można kosić
       default: 4
       selector:
         number:
           min: 0
           max: 20
+          step: 0.1
           unit_of_measurement: mm
           mode: slider
-          step: 0.1
-
     mowing_start:
       name: Początek okna koszenia
       selector:
-        time:
-
+        time: {}
     mowing_end:
       name: Koniec okna koszenia
       selector:
-        time:
-
+        time: {}
     notify_device:
-      name: Urządzenie mobilne do powiadomień
+      name: Urządzenie mobilne (mobile_app)
       selector:
         device:
           integration: mobile_app
@@ -81,4 +71,5 @@ action:
     device_id: !input notify_device
     title: "Koszenie rozpoczęte"
     message: "Heniek rozpoczął koszenie w elastycznym oknie czasowym."
+
 mode: single

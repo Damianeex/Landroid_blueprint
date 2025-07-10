@@ -1,8 +1,7 @@
 
 blueprint:
   name: Koszenie trawnika - elastyczne okno
-  description: >
-    Automatyzacja koszenia trawnika z uwzględnieniem prognozy opadów, czujnika deszczu i elastycznego okna czasowego.
+  description: Automatyczne koszenie trawnika w określonym oknie czasowym, jeśli nie pada i prognozowane opady są poniżej progu.
   domain: automation
   input:
     mower_entity:
@@ -11,12 +10,12 @@ blueprint:
         entity:
           domain: lawn_mower
     rain_sensor:
-      name: Czujnik deszczu
+      name: Czujnik deszczu (binary_sensor)
       selector:
         entity:
           domain: binary_sensor
     rain_forecast_sensor:
-      name: Sensor prognozowanych opadów
+      name: Sensor prognozowanych opadów (sensor)
       selector:
         entity:
           domain: sensor
@@ -27,9 +26,8 @@ blueprint:
         number:
           min: 0
           max: 20
-          unit_of_measurement: mm
-          mode: slider
           step: 0.1
+          unit_of_measurement: mm
     mowing_start:
       name: Początek okna koszenia
       selector:

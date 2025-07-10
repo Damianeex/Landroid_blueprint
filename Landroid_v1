@@ -1,23 +1,21 @@
 
 blueprint:
   name: Koszenie trawnika - elastyczne okno z powiadomieniem
-  description: >
-    Uruchamia kosiarkę w określonym oknie czasowym, jeśli nie pada i prognozowane opady są poniżej progu.
-    Wysyła powiadomienie na urządzenie mobilne (mobile_app) po uruchomieniu koszenia.
+  description: Uruchamia kosiarkę w określonym oknie czasowym, jeśli nie pada i prognozowane opady są poniżej progu. Wysyła powiadomienie na urządzenie mobilne.
   domain: automation
   input:
     mower_entity:
-      name: Encja kosiarki
+      name: Kosiarka
       selector:
         entity:
           domain: lawn_mower
     rain_sensor:
-      name: Czujnik deszczu (binary_sensor)
+      name: Czujnik deszczu
       selector:
         entity:
           domain: binary_sensor
     rain_forecast_sensor:
-      name: Sensor prognozowanych opadów (mm)
+      name: Sensor prognozowanych opadów
       selector:
         entity:
           domain: sensor
@@ -43,6 +41,17 @@ blueprint:
       selector:
         device:
           integration: mobile_app
+    notify_enabled:
+      name: Czy wysyłać powiadomienie?
+      default: true
+      selector:
+        boolean: {}
+    notify_message:
+      name: Treść powiadomienia
+      default: "Heniek rozpoczął koszenie w elastycznym oknie czasowym."
+      selector:
+        text:
+          multiline: true
 
 trigger:
   - platform: time_pattern
@@ -66,10 +75,14 @@ action:
   - service: lawn_mower.start_mowing
     target:
       entity_id: !input mower_entity
-  - alias: Powiadomienie o rozpoczęciu koszenia
-    domain: mobile_app
-    type: notify
-    device_id: !input notify_device
-    message: "Heniek rozpoczął koszenie w elastycznym oknie czasowym."
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ (not is_state('input_boolean.notify_enabled', 'off')) }}"
+        sequence:
+          - domain: mobile_app
+            type: notify
+            device_id: !input notify_device
+            message: !input notify_message
 
 mode: single

@@ -1,42 +1,56 @@
-
+action:
+- service: lawn_mower.start_mowing
+  target:
+    entity_id: '!input mower_entity'
+- choose:
+  - conditions:
+    - condition: template
+      value_template: '{{ (true == (inputs.notify_enabled | default(true))) }}'
+    sequence:
+    - device_id: '!input notify_device'
+      domain: mobile_app
+      message: '!input notify_message'
+      type: notify
+- choose:
+  - conditions:
+    - condition: template
+      value_template: '{{ now().strftime(''%A'') | lower in (inputs.cut_to_edge_days
+        | default([])) }}'
+    sequence:
+    - service: lawn_mower.start_cut_to_edge
+      target:
+        entity_id: '!input mower_entity'
 blueprint:
-  name: Koszenie trawnika - elastyczne okno z powiadomieniem
-  description: >
-    Uruchamia kosiarkę w określonym oknie czasowym, jeśli spełnione są warunki pogodowe.
-    Wysyła powiadomienie, jeśli opcja jest włączona.
+  description: Uruchamia kosiarkę w określonym oknie czasowym, jeśli spełnione są
+    warunki pogodowe. Wysyła powiadomienie, jeśli opcja jest włączona. Dodatkowo uruchamia
+    tryb Cut-to-Edge po zakończeniu koszenia i naładowaniu baterii do 100% w wybrane
+    dni tygodnia.
   domain: automation
   input:
+    cut_to_edge_days:
+      name: Dni tygodnia dla trybu Cut-to-Edge
+      selector:
+        select:
+          multiple: true
+          options:
+          - monday
+          - tuesday
+          - wednesday
+          - thursday
+          - friday
+          - saturday
+          - sunday
     mower_entity:
       name: Kosiarka
       selector:
         entity:
           domain: lawn_mower
-    rain_sensor:
-      name: Czujnik deszczu
-      selector:
-        entity:
-          domain: binary_sensor
-    rain_forecast_sensor:
-      name: Sensor prognozowanych opadów
-      selector:
-        entity:
-          domain: sensor
-    rain_threshold:
-      name: Próg opadów (mm)
-      default: 4
-      selector:
-        number:
-          min: 0
-          max: 20
-          step: 0.1
-          unit_of_measurement: mm
-          mode: slider
-    mowing_start:
-      name: Początek okna koszenia
-      selector:
-        time: {}
     mowing_end:
       name: Koniec okna koszenia
+      selector:
+        time: {}
+    mowing_start:
+      name: Początek okna koszenia
       selector:
         time: {}
     notify_device:
@@ -45,48 +59,55 @@ blueprint:
         device:
           integration: mobile_app
     notify_enabled:
-      name: Czy wysyłać powiadomienie?
       default: true
+      name: Czy wysyłać powiadomienie?
       selector:
         boolean: {}
     notify_message:
+      default: Heniek rozpoczął koszenie w elastycznym oknie czasowym.
       name: Treść powiadomienia
-      default: "Heniek rozpoczął koszenie w elastycznym oknie czasowym."
       selector:
         text:
           multiline: true
-
-trigger:
-  - platform: time_pattern
-    minutes: "/5"
-
+    rain_forecast_sensor:
+      name: Sensor prognozowanych opadów
+      selector:
+        entity:
+          domain: sensor
+    rain_sensor:
+      name: Czujnik deszczu
+      selector:
+        entity:
+          domain: binary_sensor
+    rain_threshold:
+      default: 4
+      name: Próg opadów (mm)
+      selector:
+        number:
+          max: 20
+          min: 0
+          mode: slider
+          step: 0.1
+          unit_of_measurement: mm
+  name: Koszenie trawnika - elastyczne okno z powiadomieniem i trybem Cut-to-Edge
 condition:
-  - condition: time
-    after: !input mowing_start
-    before: !input mowing_end
-  - condition: state
-    entity_id: !input rain_sensor
-    state: "off"
-  - condition: numeric_state
-    entity_id: !input rain_forecast_sensor
-    above: !input rain_threshold
-  - condition: state
-    entity_id: !input mower_entity
-    state: "docked"
-
-action:
-  - service: lawn_mower.start_mowing
-    target:
-      entity_id: !input mower_entity
-
-  - choose:
-      - conditions:
-          - condition: template
-            value_template: "{{ (true == (inputs.notify_enabled | default(true))) }}"
-        sequence:
-          - domain: mobile_app
-            type: notify
-            device_id: !input notify_device
-            message: !input notify_message
-
+- after: '!input mowing_start'
+  before: '!input mowing_end'
+  condition: time
+- condition: state
+  entity_id: '!input rain_sensor'
+  state: 'off'
+- above: '!input rain_threshold'
+  condition: numeric_state
+  entity_id: '!input rain_forecast_sensor'
+- condition: state
+  entity_id: '!input mower_entity'
+  state: docked
 mode: single
+trigger:
+- minutes: /5
+  platform: time_pattern
+- entity_id: '!input mower_entity'
+  for: 00:01:00
+  platform: state
+  to: docked
